@@ -1,6 +1,14 @@
 ---
 # tasks file for xwiki-docker
 
+- name: Install python dependencies for managing docker with ansible
+  pip:
+    name:
+      - docker
+      - jsondiff
+      - pyyaml
+    state: present
+
 - name: Initialize swarm node
   docker_swarm:
     name: default
