@@ -1,5 +1,5 @@
-Role Name
-=========
+Ansible role: xwiki-docker
+==========================
 
 Ansible role for setting up an xwiki instance that is powered by a docker stack. 
 
