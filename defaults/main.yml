@@ -21,10 +21,11 @@
 
 # defaults file for xwiki-docker
 # docker and ansible only work properly with python3. So we set that as default interpreter
-ansible_python_interpreter: /usr/bin/python3
+ansible_python_interpreter: python3
 
 xwiki_server_name: "*"
-
+xwiki_db_username: xwiki_db_user
+xwiki_backup: true
 xwiki_backup_log_dir: /var/lib/xwiki
 xwiki_backup_script_dir: /var/lib/xwiki
 xwiki_backup_dir: /var/lib/xwiki/backups

@@ -179,3 +179,4 @@
 
 - name: include backup tasks
   include: backup.yml
+  when: xwiki_backup
