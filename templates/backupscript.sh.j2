@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -eu -o pipefail
+
+BACKUP_DIR="{{ xwiki_backup_dir }}"
+XWIKI_DB_USER="{{xwiki_db_username}}"
+BACKUP_MAX_AGE_DAYS="{{xwiki_backup_max_age_days}}"
+DATE="$(date --iso-8601)"
+
+mkdir -p $BACKUP_DIR
+
+echo "$(date): backup xwiki database"
+POSTGRES_CONTAINER="$(docker ps -f status=running -f is-task=true -f name=xwiki_db -q)"
+docker exec $POSTGRES_CONTAINER \
+pg_dump -d xwiki -U $XWIKI_DB_USER | gzip >> $BACKUP_DIR/xwiki_db_$DATE.sql.gz
+echo "$(date): database backup finished"
+
+echo "$(date): backup xwiki permanent directory"
+XWIKI_DATA_VOLUME="$(docker volume ls -f name=xwiki-data -q)"
+docker run -v $XWIKI_DATA_VOLUME:/data -v $BACKUP_DIR:/backup debian \
+tar -czf /backup/xwiki_permanent_directory_$DATE.tar.gz /data
+echo "$(date): permanent directory backup finished"
+
+echo "$(date): remove files older than $BACKUP_MAX_AGE_DAYS days"
+find $BACKUP_DIR -mtime +$BACKUP_MAX_AGE_DAYS -delete
+echo "$(date): removal complete"
+
+{% if xwiki_backup_remote_location is defined %}
+REMOTE_BACKUP="{{ xwiki_backup_remote_location }}"
+IDENTITY="{{ xwiki_remote_backup_identity_file }}"
+echo "$(date): Syncing backups to $REMOTE_BACKUP"
+# --compress not needed as backups are already compressed
+rsync -hv -rtp --delay-updates --delete-after \
+--rsh "ssh -i $IDENTITY" $BACKUP_DIR $REMOTE_BACKUP
+echo "$(date): Synchronization complete"
+{% endif %}

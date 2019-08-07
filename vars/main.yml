@@ -1,0 +1,4 @@
+---
+# vars file for xwiki-docker
+
+xwiki_remote_backup_identity_file: "/root/.ssh/xwiki_backup"

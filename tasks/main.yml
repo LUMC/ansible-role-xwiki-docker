@@ -1,0 +1,153 @@
+---
+# tasks file for xwiki-docker
+
+- name: Initialize swarm node
+  docker_swarm:
+    name: default
+    state: present
+
+# Docker secrets and configs can never be updated under the same name.
+# Therefore they need an unique name. We produce an md5sum hash based on the
+# contents of the files.
+
+- name: Set unique names so configs can be updated
+  set_fact:
+    xwiki_nginx_config_name:  "xwiki-nginx.conf-{{ lookup('template', 'nginx-xwiki.conf.j2') | hash('md5')}}"
+    # We create a hash of the first meaningfull line in the certificate and key.
+    # This should be unique for each certificate without using the entire contents for safety.
+    xwiki_server_key_secret_name:
+      "xwiki-server-key-{{ lookup('file', xwiki_server_key) | regex_search('^[^\\-].*$', multiline=True) | hash('md5')}}"
+    xwiki_server_cert_secret_name:
+      "xwiki-server-cert-{{ lookup('file', xwiki_server_cert) | regex_search('^[^\\-].*$', multiline=True) | hash('md5')}}"
+
+- name: set xwiki config unique name
+  set_fact:
+    xwiki_cfg_name: "xwiki-cfg-{{ lookup('file', xwiki_cfg) | hash('md5')}}"
+    xwiki_cfg_config:
+      source: xwiki-cfg
+      target: /usr/local/xwiki/data/xwiki.cfg
+  when: xwiki_cfg is defined
+
+- name: create xwiki-cfg secret
+  docker_secret:
+    name: "{{ xwiki_cfg_name }}"
+    data: "{{ lookup('file', xwiki_cfg) }}"
+  when: xwiki_cfg is defined
+
+- name: create dummy xwiki-cfg secret
+  docker_secret:
+    name: xwiki-cfg-dummy
+    data: xwiki-cfg-dummy
+  when: not xwiki_cfg is defined
+
+- name: create xwiki-nginx config
+  docker_config:
+    name: "{{ xwiki_nginx_config_name }}"
+    data: "{{ lookup('template', 'nginx-xwiki.conf.j2')}}"
+
+- name: create xwiki-server-key secret
+  docker_secret:
+    name: "{{ xwiki_server_key_secret_name }}"
+    data: "{{ lookup('file', xwiki_server_key) }}"
+
+- name: create xwiki-server-cert secret
+  docker_secret:
+    name: "{{ xwiki_server_cert_secret_name }}"
+    data: "{{ lookup('file', xwiki_server_cert) }}"
+
+- name: create xwiki-db-username secret
+  docker_secret:
+    name: xwiki-db-username
+    data: "{{ xwiki_db_username }}"
+    state: present
+
+- name: create xwiki-db-password secret
+  docker_secret:
+    name: xwiki-db-password
+    data: "{{ xwiki_db_password }}"
+    state: present
+
+- name: create xwiki-db-root-password secret
+  docker_secret:
+    name: xwiki-db-root-password
+    data: "{{ xwiki_db_root_password }}"
+    state: present
+
+- name: Start xwiki service
+  docker_stack:
+    name: xwiki
+    state: present
+    compose:
+      - version: '3.3'
+        services:
+          web:
+            image: "xwiki:lts-postgres-tomcat"
+            environment:
+              - DB_USER_FILE=/run/secrets/xwiki-db-username
+              - DB_PASSWORD_FILE=/run/secrets/xwiki-db-password
+              - DB_DATABASE=xwiki
+              - DB_HOST=db
+            volumes:
+              - xwiki-data:/usr/local/xwiki
+            secrets:
+              - xwiki-db-username
+              - xwiki-db-password
+              - "{{ xwiki_cfg_config | default('xwiki-cfg')}}"
+            depends_on:
+              - db
+          db:
+            image: "postgres:9.5"
+            volumes:
+              - postgres-data:/var/lib/postgresql/data
+            environment:
+              - POSTGRES_ROOT_PASSWORD_FILE=/run/secrets/xwiki-db-root-password
+              - POSTGRES_USER_FILE=/run/secrets/xwiki-db-username
+              - POSTGRES_PASSWORD_FILE=/run/secrets/xwiki-db-password
+              - POSTGRES_DB=xwiki
+            secrets:
+              - xwiki-db-username
+              - xwiki-db-password
+              - xwiki-db-root-password
+          reverse_proxy:
+            ports:
+              - "80:80"
+              - "443:443"
+            image: "nginx:1.16.0"
+            configs:
+              - source: "nginx-xwiki.conf"
+                target: /etc/nginx/conf.d/default.conf
+                mode: 0440
+            secrets:
+              - xwiki-server-cert
+              - xwiki-server-key
+            depends_on:
+              - web
+        volumes:
+          postgres-data:
+          xwiki-data:
+        secrets:
+          xwiki-db-username:
+            external:
+              name: xwiki-db-username
+          xwiki-db-password:
+            external:
+              name: xwiki-db-password
+          xwiki-db-root-password:
+            external:
+              name: xwiki-db-root-password
+          xwiki-server-key:
+            external:
+              name: "{{ xwiki_server_key_secret_name }}"
+          xwiki-server-cert:
+            external:
+              name: "{{ xwiki_server_cert_secret_name}}"
+          xwiki-cfg:
+            external:
+              name: "{{ xwiki_cfg_name | default('xwiki-cfg-dummy') }}"
+        configs:
+          "nginx-xwiki.conf":
+            external:
+              name: "{{ xwiki_nginx_config_name }}"
+
+- name: include backup tasks
+  include: backup.yml
