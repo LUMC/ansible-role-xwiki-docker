@@ -109,7 +109,7 @@
       - version: '3.3'
         services:
           web:
-            image: "xwiki:lts-postgres-tomcat"
+            image: "{{ xwiki_docker_image_xwiki }}"
             environment:
               - DB_USER_FILE=/run/secrets/xwiki-db-username
               - DB_PASSWORD_FILE=/run/secrets/xwiki-db-password
@@ -124,7 +124,7 @@
             depends_on:
               - db
           db:
-            image: "postgres:9.5"
+            image: "{{ xwiki_docker_image_postgres }}"
             volumes:
               - postgres-data:/var/lib/postgresql/data
             environment:
@@ -140,7 +140,7 @@
             ports:
               - "80:80"
               - "443:443"
-            image: "nginx:1.16.0"
+            image: "{{ xwiki_docker_image_nginx }}"
             configs:
               - source: "nginx-xwiki.conf"
                 target: /etc/nginx/conf.d/default.conf

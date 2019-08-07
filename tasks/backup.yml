@@ -60,6 +60,7 @@
     key: "{{ xwiki_backup_remote_host_public_key }}"
     name: "{{ xwiki_backup_remote_host_name }}"
     state: present
+  when: xwiki_backup_ssh_key is defined
 
 - name: Set cronjob for automated backup
   cron:

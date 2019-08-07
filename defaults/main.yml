@@ -23,15 +23,18 @@
 # docker and ansible only work properly with python3. So we set that as default interpreter
 ansible_python_interpreter: python3
 
-xwiki_server_name: "*"
+xwiki_server_name: "localhost"
 xwiki_db_username: xwiki_db_user
 xwiki_backup: true
 xwiki_backup_log_dir: /var/lib/xwiki
 xwiki_backup_script_dir: /var/lib/xwiki
 xwiki_backup_dir: /var/lib/xwiki/backups
-xwiki_backup_max_age_days: "30"
+xwiki_backup_max_age_days: "31"
 xwiki_backup_cron_minute: "0"
 xwiki_backup_cron_hour: "0"
 xwiki_backup_cron_day: "*"
 xwiki_backup_cron_weekday: "6"
 xwiki_backup_cron_month: "*"
+xwiki_docker_image_xwiki: "xwiki:lts-postgres-tomcat"
+xwiki_docker_image_postgres: "postgres:latest"
+xwiki_docker_image_nginx: "nginx:stable"
