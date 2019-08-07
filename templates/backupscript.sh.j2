@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2019 Leiden University Medical Center
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+set -eu -o pipefail
+
+BACKUP_DIR="{{ xwiki_backup_dir }}"
+XWIKI_DB_USER="{{xwiki_db_username}}"
+BACKUP_MAX_AGE_DAYS="{{xwiki_backup_max_age_days}}"
+DATE="$(date --iso-8601)"
+
+mkdir -p $BACKUP_DIR
+
+echo "$(date): backup xwiki database"
+POSTGRES_CONTAINER="$(docker ps -f status=running -f is-task=true -f name=xwiki_db -q)"
+docker exec $POSTGRES_CONTAINER \
+pg_dump -d xwiki -U $XWIKI_DB_USER | gzip >> $BACKUP_DIR/xwiki_db_$DATE.sql.gz
+echo "$(date): database backup finished"
+
+echo "$(date): backup xwiki permanent directory"
+XWIKI_DATA_VOLUME="$(docker volume ls -f name=xwiki-data -q)"
+docker run -v $XWIKI_DATA_VOLUME:/data -v $BACKUP_DIR:/backup debian \
+tar -czf /backup/xwiki_permanent_directory_$DATE.tar.gz /data
+echo "$(date): permanent directory backup finished"
+
+echo "$(date): remove files older than $BACKUP_MAX_AGE_DAYS days"
+find $BACKUP_DIR -mtime +$BACKUP_MAX_AGE_DAYS -delete
+echo "$(date): removal complete"
+
+{% if xwiki_backup_remote_location is defined %}
+REMOTE_BACKUP="{{ xwiki_backup_remote_location }}"
+IDENTITY="{{ xwiki_remote_backup_identity_file }}"
+echo "$(date): Syncing backups to $REMOTE_BACKUP"
+# --compress not needed as backups are already compressed
+rsync -hv -rtp --delay-updates --delete-after \
+--rsh "ssh -i $IDENTITY" $BACKUP_DIR $REMOTE_BACKUP
+echo "$(date): Synchronization complete"
+{% endif %}

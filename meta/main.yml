@@ -1,0 +1,12 @@
+galaxy_info:
+  author: Ruben Vorderman
+  description: "Github: @rhpvorderman"
+  company: Leiden University Medical Center
+
+  license: MIT
+
+  min_ansible_version: 2.8
+
+  galaxy_tags:
+    - xwiki
+    - docker

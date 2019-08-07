@@ -1,0 +1,76 @@
+---
+# Copyright (c) 2019 Leiden University Medical Center
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Tasks for setting up a simple backup
+- name: create backup directory
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ xwiki_backup_log_dir }}"
+    - "{{ xwiki_backup_script_dir }}"
+    - "{{ xwiki_backup_dir }}"
+
+- name: create backup script
+  template:
+    src: backupscript.sh.j2
+    dest: "{{ xwiki_backup_script_dir }}/xwiki_backup.sh"
+
+- name: install rsync
+  package:
+    name: rsync
+    state: present
+  when: xwiki_backup_remote_location is defined
+
+- name: create ssh directory
+  file:
+    path: /root/.ssh
+    mode: 0700
+    state: directory
+  when: xwiki_backup_ssh_key is defined
+
+- name: copy ssh key to root user for backups
+  copy:
+    src: "{{ xwiki_backup_ssh_key }}"
+    dest: "{{ xwiki_remote_backup_identity_file }}"
+    mode: 0600
+  when: xwiki_backup_ssh_key is defined
+
+- name: add remote backup server to known hosts file
+  known_hosts:
+    hash_host: true
+    key: "{{ xwiki_backup_remote_host_public_key }}"
+    name: "{{ xwiki_backup_remote_host_name }}"
+    state: present
+  when: xwiki_backup_ssh_key is defined
+
+- name: Set cronjob for automated backup
+  cron:
+    name: xwiki backup
+    job: >-
+      bash {{ xwiki_backup_script_dir }}/xwiki_backup.sh &>>
+      {{xwiki_backup_log_dir}}/xwiki_backup.log
+    state: present
+    minute: "{{ xwiki_backup_cron_minute }}"
+    hour: "{{ xwiki_backup_cron_hour }}"
+    day: "{{ xwiki_backup_cron_day }}"
+    weekday: "{{ xwiki_backup_cron_weekday }}"
+    month: "{{ xwiki_backup_cron_month }}"
