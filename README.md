@@ -10,6 +10,8 @@ Docker must be installed on the orchestrated node, as well as `docker-compose`.
 This role defaults to `python3` for the `ansible-python-interpreter`. 
 Python3 pip should be installed on the node so pip can install the python
 dependencies necessary for this role.
+
+Role variables
 --------------
 
 TODO: A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
