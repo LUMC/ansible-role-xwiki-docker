@@ -3,6 +3,20 @@ Ansible role: xwiki-docker
 
 Ansible role for setting up an xwiki instance that is powered by a docker stack.
 
+This is based on the documentation on the official [xwiki docker github](https://github.com/xwiki-contrib/docker-xwiki).
+
+It sets up:
+- A container running xwiki
+- A container running postgres
+- A container running nginx as a reverse proxy.
+- A backup script that backs up xwiki's permanent directory and the database (can be turned off with `xwiki_backup: false`).
+
+It sets up ssl for https connections to the xwiki server.
+
+This role is meant for single-server instances of xwiki. It uses docker stack
+to leverage `docker secret` and `docker config`. In theory it can be used to
+scale up the server later when necessary.
+
 Requirements
 ------------
 
@@ -25,7 +39,7 @@ Role variables
 |xwiki_db_password (required) | not set | password for the xwiki database|
 |xwiki_db_root_password (required) | not set | root password for the xwiki database|
 |xwiki_docker_image_xwiki|xwiki:lts-postgres-tomcat|The docker image for xwiki. It is recommended to change this to a specific version.|
-|xwiki_docker_image_postgres|postgres:latest|The docker image for postgres. It is recommended to change this to a specific version.|
+|xwiki_docker_image_postgres|postgres:9.5|The docker image for postgres. This is the one used in examples of the [official xwiki docker image](https://github.com/xwiki-contrib/docker-xwiki)|
 |xwiki_docker_image_nginx|nginx:stable|The docker image for nginx. It is recommended to change this to a specific version.|
 |xwiki_backup| true | By default a simple backup script is created that creates a tarball of the xwiki permanent directory and a sql backup of the xwiki database. This can be set to false if another backup solution is wanted.|
 |xwiki_backup_log_dir| /var/lib/xwiki | where the backup log should be stored|
