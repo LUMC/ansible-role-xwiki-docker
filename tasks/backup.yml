@@ -24,6 +24,7 @@
   file:
     path: "{{ item }}"
     state: directory
+    mode: 0700
   with_items:
     - "{{ xwiki_backup_log_dir }}"
     - "{{ xwiki_backup_script_dir }}"
