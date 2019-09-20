@@ -24,6 +24,7 @@
   file:
     path: "{{ item }}"
     state: directory
+    mode: 0700
   with_items:
     - "{{ xwiki_backup_log_dir }}"
     - "{{ xwiki_backup_script_dir }}"
@@ -66,8 +67,8 @@
   cron:
     name: xwiki backup
     job: >-
-      bash {{ xwiki_backup_script_dir }}/xwiki_backup.sh &>>
-      {{xwiki_backup_log_dir}}/xwiki_backup.log
+      bash -c "bash {{ xwiki_backup_script_dir }}/xwiki_backup.sh &>>
+      {{xwiki_backup_log_dir}}/xwiki_backup.log"
     state: present
     minute: "{{ xwiki_backup_cron_minute }}"
     hour: "{{ xwiki_backup_cron_hour }}"
