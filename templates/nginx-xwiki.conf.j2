@@ -10,6 +10,7 @@ server {
   server_name {{ xwiki_server_name }};
   ssl_certificate /run/secrets/xwiki-server-cert;
   ssl_certificate_key /run/secrets/xwiki-server-key;
+	client_max_body_size {{ xwiki_nginx_client_max_body_size }};
   location / {
     proxy_pass http://web:8080;
     proxy_set_header X-URL-SCHEME https;
