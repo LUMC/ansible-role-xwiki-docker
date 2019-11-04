@@ -41,6 +41,7 @@
 - name: Set unique names so configs can be updated
   set_fact:
     xwiki_nginx_config_name:  "xwiki-nginx.conf-{{ lookup('template', 'nginx-xwiki.conf.j2') | hash('md5')}}"
+    xwiki_cfg_name: "xwiki-cfg-{{ lookup('file', xwiki_cfg) | hash('md5')}}"
     # We create a hash of the first meaningfull line in the certificate and key.
     # This should be unique for each certificate without using the entire contents for safety.
     xwiki_server_key_secret_name:
@@ -48,25 +49,10 @@
     xwiki_server_cert_secret_name:
       "xwiki-server-cert-{{ lookup('file', xwiki_server_cert) | regex_search('^[^\\-].*$', multiline=True) | hash('md5')}}"
 
-- name: set xwiki config unique name
-  set_fact:
-    xwiki_cfg_name: "xwiki-cfg-{{ lookup('file', xwiki_cfg) | hash('md5')}}"
-    xwiki_cfg_config:
-      source: xwiki-cfg
-      target: /usr/local/xwiki/data/xwiki.cfg
-  when: xwiki_cfg is defined
-
 - name: create xwiki-cfg secret
   docker_secret:
     name: "{{ xwiki_cfg_name }}"
     data: "{{ lookup('file', xwiki_cfg) }}"
-  when: xwiki_cfg is defined
-
-- name: create dummy xwiki-cfg secret
-  docker_secret:
-    name: xwiki-cfg-dummy
-    data: xwiki-cfg-dummy
-  when: not xwiki_cfg is defined
 
 - name: create xwiki-nginx config
   docker_config:
@@ -120,7 +106,8 @@
             secrets:
               - xwiki-db-username
               - xwiki-db-password
-              - "{{ xwiki_cfg_config | default('xwiki-cfg')}}"
+              - source: xwiki-cfg
+                target: /usr/local/xwiki/data/xwiki.cfg
             depends_on:
               - db
           db:
@@ -171,7 +158,7 @@
               name: "{{ xwiki_server_cert_secret_name}}"
           xwiki-cfg:
             external:
-              name: "{{ xwiki_cfg_name | default('xwiki-cfg-dummy') }}"
+              name: "{{ xwiki_cfg_name }}"
         configs:
           "nginx-xwiki.conf":
             external:
