@@ -21,15 +21,6 @@
 
 # tasks file for xwiki-docker
 
-# This is required on python2 to succesfully install the other dependencies.
-- name: Make sure latest pip, setuptools and wheel are installed
-  pip:
-    name:
-      - pip
-      - setuptools
-      - wheel
-    state: latest
-
 - name: Install python dependencies for managing docker with ansible
   pip:
     name:
