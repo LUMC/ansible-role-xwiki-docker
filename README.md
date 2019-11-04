@@ -34,7 +34,8 @@ Role variables
 |xwiki_server_key (required)| not set | The servers private key for enabling https|
 |xwiki_server_cert (required)| not set | The servers certificate for https|
 |xwiki_server_name (required)| localhost | the name of the server (for example:  xwiki.example.com). This is used in the nginx configuration.|
-|xwiki_cfg| not set | `xwiki.cfg` file. When not set the container's default config will be used|
+|xwiki_cfg| xwiki-default.cfg | `xwiki.cfg` file. When not set the config in
+files/xwiki-default.cfg will be used|
 |xwiki_db_username| xwiki_db_user | The user for the xwiki database|
 |xwiki_db_password (required) | not set | password for the xwiki database|
 |xwiki_db_root_password (required) | not set | root password for the xwiki database|
